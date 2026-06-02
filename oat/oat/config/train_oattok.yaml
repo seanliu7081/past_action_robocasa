@@ -41,7 +41,7 @@ tokenizer:
 
   quantizer:
     _target_: oat.tokenizer.oat.quantizer.fsq.FSQ
-    levels: [8, 5, 5, 5]
+    levels: [8, 5, 5, 5, 5]
     
 
 training:
@@ -60,7 +60,8 @@ training:
   max_reconst_steps: null
   seed: ${seed}
   use_ema: True
-  num_demo: 500
+  # num_demo: 500
+  num_demo: 200
   tqdm_interval_sec: 1.0
 
 ema:

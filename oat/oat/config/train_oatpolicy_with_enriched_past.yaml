@@ -55,8 +55,8 @@ training:
   val_every: 10
   sample_every: 10
   # rollout_every: 200
-  # rollout_every: 100
-  rollout_every: 50
+  rollout_every: 100
+  # rollout_every: 50
   checkpoint_every: 10
   lr_scheduler: constant
   lr_warmup_steps: 100
@@ -66,7 +66,8 @@ training:
   max_reconst_steps: null
   seed: ${seed}
   use_ema: True
-  num_demo: 500
+  # num_demo: 500
+  num_demo: 200
   tqdm_interval_sec: 1.0
 
 ema:
