@@ -1,20 +1,52 @@
+# train_oattok_so3aug.yaml  (RoboCasa)
+# ─────────────────────────────────────────────────────
+# OATTok with SO(3) raw-action augmentation + FSQ quantizer,
+# adapted from the LIBERO config of the same name to RoboCasa
+# kitchen tasks.
+#
+# RoboCasa note: the PandaOmron action is 12-dim. Indices [0:3] are
+# the arm delta position, [3:6] the arm delta orientation as an
+# axis-angle (rotation vector), [6] the gripper, [7:12] the mobile
+# base / torso. The SO(3) augmentation therefore rotates only the
+# [3:6] EEF-orientation slice (augment_position=false), which leaves
+# position, gripper, and base untouched.
+#
+# This config defaults to the robocasa/CloseDrawer task. Override the
+# task at the CLI to run other tasks (or LIBERO), e.g.
+#   task/tokenizer=robocasa/TurnOffMicrowave
+#   task/tokenizer=libero/libero10
+# ─────────────────────────────────────────────────────
+
 defaults:
   - _self_
-  - task/tokenizer: libero/libero10
+  # - task/tokenizer: robocasa/CloseDrawer
+  - task/tokenizer: robocasa/robocasa3_with_past
 
-name: train_oattok
+
+name: train_oattok_so3aug
 _target_: oat.workspace.train_oattok.TrainOATTokWorkspace
 
 seed: 42
-# horizon: 32
 horizon: 16
 task_name: ${task.tokenizer.name}
 action_dim: ${task.tokenizer.shape_meta.action.shape[0]}
 
-
 latent_dim: ${eval:'len(${tokenizer.quantizer.levels})'}
-tokenizer: 
-  _target_: oat.tokenizer.oat.tokenizer.OATTok
+tokenizer:
+  _target_: oat.tokenizer.oat.tokenizer_so3_aug.OATTokSO3Aug
+
+  action_aug:
+    _target_: oat.tokenizer.oat.augment.so3_action_chunk_aug.SO3ActionChunkAug
+    p: 0.6
+    # max_angle_deg: 10.0
+    max_angle_deg: 30.0
+    # max_angle_deg: 60.0
+    mode: left_noise
+    augment_position: false
+    pos_start: 0
+    pos_end: 3
+    rot_start: 3
+    rot_end: 6
 
   encoder:
     _target_: oat.tokenizer.oat.encoder.register_encoder.RegisterEncoder
@@ -26,7 +58,7 @@ tokenizer:
     pdropout: 0.1
     latent_dim: ${latent_dim}
     num_registers: 8
-    
+
   decoder:
     _target_: oat.tokenizer.oat.decoder.single_pass_decoder.SinglePassDecoder
     sample_dim: ${action_dim}
@@ -43,7 +75,8 @@ tokenizer:
   quantizer:
     _target_: oat.tokenizer.oat.quantizer.fsq.FSQ
     levels: [8, 5, 5, 5, 5]
-    
+    # levels: [8, 5, 5, 5]
+
 
 training:
   resume: True
@@ -61,8 +94,8 @@ training:
   max_reconst_steps: null
   seed: ${seed}
   use_ema: True
-  # num_demo: 500
-  num_demo: 200
+  # num_demo: 200
+  num_demo: 600
   tqdm_interval_sec: 1.0
 
 ema:
@@ -77,7 +110,7 @@ optimizer:
   learning_rate: 5.0e-5
   weight_decay: 0.0
   betas: [0.9, 0.95]
-  
+
 dataloader:
   batch_size: 256
   num_workers: 4
@@ -99,7 +132,7 @@ logging:
   resume: True
   mode: online
   name: ${now:%Y%m%d.%H%M%S}_${name}_${task_name}_N${training.num_demo}
-  tags: ["${name}", "${task_name}"]
+  tags: ["${name}", "${task_name}", "so3aug"]
   id: null
   group: null
 

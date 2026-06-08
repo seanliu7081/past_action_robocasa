@@ -1,6 +1,26 @@
+# train_oatpolicy_with_enriched_past_robocasa.yaml  (RoboCasa)
+# ─────────────────────────────────────────────────────
+# OATPolicy with enriched past (7-step action history + explicit
+# acceleration/jerk features), adapted to RoboCasa kitchen tasks.
+#
+# This config defaults to the robocasa/CloseDrawer_with_past task, so
+# it can be launched with just --config-name (no task override).
+# Override the task at the CLI to run other tasks (or LIBERO), e.g.
+#   task/policy=robocasa/TurnOffMicrowave_with_past
+#   task/policy=libero/libero10_with_past
+#
+# The action_tokenizer is loaded from a Phase-1 tokenizer checkpoint
+# via OATTok.from_checkpoint, which rebuilds the tokenizer from the
+# config saved inside the checkpoint. It therefore works transparently
+# with an SO(3)-aug tokenizer checkpoint (OATTokSO3Aug) trained via
+# train_oattok_so3aug.yaml — no change needed here. Pass the checkpoint
+# at the CLI:
+#   policy.action_tokenizer.checkpoint=<path_to_so3aug_tokenizer_ckpt>
+# ─────────────────────────────────────────────────────
+
 defaults:
   - _self_
-  - task/policy: libero/libero10_with_past
+  - task/policy: robocasa/CloseDrawer_with_past
 
 name: train_oatpolicy_with_enriched_past
 _target_: oat.workspace.train_policy.TrainPolicyWorkspace
@@ -69,7 +89,8 @@ training:
   seed: ${seed}
   use_ema: True
   # num_demo: 500
-  num_demo: 200
+  # num_demo: 200
+  num_demo: 600
   tqdm_interval_sec: 1.0
 
 ema:
