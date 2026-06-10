@@ -33,6 +33,8 @@ ROBOCASA_TASK_NAMES: List[str] = [
     "TurnOffMicrowave",    # uid 1
     "TurnOffSinkFaucet",   # uid 2
     "CloseDrawer",         # uid 3 (reserved; no zarr data yet)
+    "TurnOnSinkFaucet",    # uid 4
+    "TurnSinkSpout",       # uid 5
 ]
 
 ROBOCASA_TASK_TO_UID = {name: i for i, name in enumerate(ROBOCASA_TASK_NAMES)}
@@ -46,6 +48,8 @@ ROBOCASA_TASK_PROMPTS = {
     "TurnOffMicrowave": "turn off the microwave",
     "TurnOffSinkFaucet": "turn off the sink faucet",
     "CloseDrawer": "close the drawer",
+    "TurnOnSinkFaucet": "turn on the sink faucet",
+    "TurnSinkSpout": "turn the sink spout",
 }
 
 # Multi-task suites: name -> ordered list of constituent task names.
@@ -54,6 +58,13 @@ MT_TASKS = {
         "CoffeePressButton",
         "TurnOffMicrowave",
         "TurnOffSinkFaucet",
+    ],
+    # Sink-manipulation suite (uids 4, 2, 5 — non-contiguous because uids are
+    # append-only; the normalizer maps the distinct values fine).
+    "sink3": [
+        "TurnOnSinkFaucet",
+        "TurnOffSinkFaucet",
+        "TurnSinkSpout",
     ],
 }
 
