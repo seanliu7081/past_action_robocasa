@@ -35,6 +35,10 @@ ROBOCASA_TASK_NAMES: List[str] = [
     "CloseDrawer",         # uid 3 (reserved; no zarr data yet)
     "TurnOnSinkFaucet",    # uid 4
     "TurnSinkSpout",       # uid 5
+    "OpenSingleDoor",      # uid 6
+    "CloseSingleDoor",     # uid 7
+    "OpenDoubleDoor",      # uid 8
+    "CloseDoubleDoor",     # uid 9
 ]
 
 ROBOCASA_TASK_TO_UID = {name: i for i, name in enumerate(ROBOCASA_TASK_NAMES)}
@@ -50,6 +54,10 @@ ROBOCASA_TASK_PROMPTS = {
     "CloseDrawer": "close the drawer",
     "TurnOnSinkFaucet": "turn on the sink faucet",
     "TurnSinkSpout": "turn the sink spout",
+    "OpenSingleDoor": "open the single door",
+    "CloseSingleDoor": "close the single door",
+    "OpenDoubleDoor": "open the double door",
+    "CloseDoubleDoor": "close the double door",
 }
 
 # Multi-task suites: name -> ordered list of constituent task names.
@@ -65,6 +73,13 @@ MT_TASKS = {
         "TurnOnSinkFaucet",
         "TurnOffSinkFaucet",
         "TurnSinkSpout",
+    ],
+    # Door-manipulation suite (uids 6, 7, 8, 9). 4 tasks x 200 demos -> N800.
+    "doors4": [
+        "OpenSingleDoor",
+        "CloseSingleDoor",
+        "OpenDoubleDoor",
+        "CloseDoubleDoor",
     ],
 }
 
