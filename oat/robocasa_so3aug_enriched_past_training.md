@@ -103,6 +103,7 @@ HYDRA_FULL_ERROR=1 accelerate launch \
     --config-name=train_oatpolicy_with_enriched_past_robocasa \
     task/policy=robocasa/CloseDrawer_with_past \
     training.num_demo=200 \
+    task.policy.lazy_eval=false \
     policy.action_tokenizer.checkpoint=<path_to_so3aug_tokenizer_checkpoint>
 ```
 
@@ -119,8 +120,10 @@ output/20260602/093210_train_oattok_so3aug_CloseDrawer_N200/checkpoints/ep-0650_
 - Other task: append `task/policy=robocasa/TurnOffMicrowave_with_past` — keep the
   tokenizer task in Phase 1 matched to the same task.
 - Rollout evaluation runs every `training.rollout_every` (100) epochs via
-  `RoboCasaRunner`. Set `task.policy.lazy_eval=true` to skip rollouts and track only
-  validation loss.
+  `RoboCasaRunner`. The `task.policy.lazy_eval=false` override in the command forces
+  eval on regardless of the task config's default (multi-task configs like
+  `doors4_with_past` default to `lazy_eval: true`). Set `task.policy.lazy_eval=true`
+  to skip rollouts and track only validation loss.
 
 ## Notes
 

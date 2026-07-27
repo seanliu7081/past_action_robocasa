@@ -143,6 +143,8 @@ HYDRA_FULL_ERROR=1 accelerate launch \
     --config-name=train_oatpolicy \
     task/policy=robocasa/CloseDrawer \
     training.num_demo=200 \
+    task.policy.lazy_eval=false \
+    training.rollout_every=100 \
     policy.action_tokenizer.checkpoint=<path_to_tokenizer_checkpoint>
 ```
 
@@ -163,6 +165,8 @@ HYDRA_FULL_ERROR=1 accelerate launch \
     --config-name=train_oatpolicy_with_enriched_past \
     task/policy=robocasa/CloseDrawer_with_past \
     training.num_demo=200 \
+    task.policy.lazy_eval=false \
+    training.rollout_every=100 \
     policy.action_tokenizer.checkpoint=<path_to_tokenizer_checkpoint>
 ```
 
@@ -191,6 +195,6 @@ RoboCasa uses 3 cameras (vs LIBERO's 2), which increases GPU memory usage. If yo
 
 - `MUJOCO_GL=egl` is required for offscreen rendering during rollout evaluation.
 - `PYTHONPATH` must include the local `robosuite` and `robocasa` directories (they contain features not in the pip-installed versions).
-- Rollout evaluation runs every `training.rollout_every` epochs (default: 50 for standard, 200 for with_past). Set `task.policy.lazy_eval=true` to skip rollouts and only track validation loss.
+- The commands above pass `task.policy.lazy_eval=false training.rollout_every=100` so rollout evaluation runs every 100 epochs regardless of the task config's default (multi-task configs like `doors4` default to `lazy_eval: true`; the config-default `rollout_every` is 50 for standard, 200 for with_past). Drop both overrides — or set `task.policy.lazy_eval=true` — to skip rollouts and only track validation loss.
 - Logs are sent to Weights & Biases under the `oat_dev` project.
 - Both policy variants share the same tokenizer, zarr data, env, and runner. The only difference is the dataset class (`ZarrDatasetWithPastAction` adds past action history) and the policy class (`OATPolicyWithEnrichedPast` conditions on past actions).
