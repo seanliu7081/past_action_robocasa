@@ -39,6 +39,8 @@ ROBOCASA_TASK_NAMES: List[str] = [
     "CloseSingleDoor",     # uid 7
     "OpenDoubleDoor",      # uid 8
     "CloseDoubleDoor",     # uid 9
+    "CupcakeCleanup",      # uid 10 (RoboCasa v1.0 LeRobot data; see note below)
+    "PastryDisplay",       # uid 11 (RoboCasa v1.0 LeRobot data; see note below)
 ]
 
 ROBOCASA_TASK_TO_UID = {name: i for i, name in enumerate(ROBOCASA_TASK_NAMES)}
@@ -58,6 +60,12 @@ ROBOCASA_TASK_PROMPTS = {
     "CloseSingleDoor": "close the single door",
     "OpenDoubleDoor": "open the double door",
     "CloseDoubleDoor": "close the double door",
+    # Verbatim from the v1.0 LeRobot `meta/tasks.jsonl`.
+    "CupcakeCleanup": (
+        "Move the fresh-baked cupcake off the tray onto the counter, and place "
+        "the bowl used for mixing into the sink."
+    ),
+    "PastryDisplay": "Place the pastries on the plates.",
 }
 
 # Multi-task suites: name -> ordered list of constituent task names.
@@ -80,6 +88,17 @@ MT_TASKS = {
         "CloseSingleDoor",
         "OpenDoubleDoor",
         "CloseDoubleDoor",
+    ],
+    # Baking suite (uids 10, 11). Unlike every suite above, these two tasks have
+    # no RoboCasa v0.2 release: their demos come from the RoboCasa **v1.0** drop
+    # in LeRobot format and are converted by
+    # ``scripts/convert_robocasa_lerobot_to_zarr.py``, which permutes the v1.0
+    # action ordering into v0.2's and converts the base-relative eef pose to
+    # world frame. Episode counts are whatever v1.0 shipped (101 + 103 = 204),
+    # not the 200/task convention used by the v0.2 suites.
+    "baking2": [
+        "CupcakeCleanup",
+        "PastryDisplay",
     ],
 }
 

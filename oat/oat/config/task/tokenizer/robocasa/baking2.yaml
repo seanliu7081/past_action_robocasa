@@ -1,0 +1,41 @@
+# baking2.yaml  (RoboCasa multi-task tokenizer: baking)
+# ──────────────────────────────────────────────────────────────
+# Tokenizer task for the 2 baking tasks (CupcakeCleanup, PastryDisplay).
+# Actions only -- no observations, no env -- so this trains without the local
+# robosuite/robocasa on PYTHONPATH and without MUJOCO_GL.
+#
+# Launch (num_demo=204 = 101 + 103, the episode counts RoboCasa v1.0 shipped;
+# this is a filename token, so it must match the composed zarr exactly):
+#   accelerate launch scripts/run_workspace.py \
+#     --config-name=train_oattok_so3aug \
+#     task/tokenizer=robocasa/baking2 \
+#     training.num_demo=204
+#
+# Build the dataset first with:
+#   python scripts/convert_robocasa_lerobot_to_zarr.py --lerobot-dir <...> --out data/robocasa/CupcakeCleanup_N101.zarr
+#   python scripts/convert_robocasa_lerobot_to_zarr.py --lerobot-dir <...> --out data/robocasa/PastryDisplay_N103.zarr
+#   python scripts/compose_robocasa_multitask_dataset.py -mt baking2 --shuffle
+#
+# NOTE: these demos originate from the RoboCasa **v1.0** LeRobot release, whose
+# 12-dim action is ordered differently from v0.2's. The converter permutes it
+# into v0.2 order, so the SO(3) augmentation's `rot_start=3, rot_end=6` (which
+# assumes v0.2's eef-rotation slice) remains correct here.
+
+name: baking2
+
+task_name: baking2
+
+shape_meta: &shape_meta
+  action:
+    shape: [12]
+
+
+dataset:
+  _target_: oat.dataset.zarr_dataset.ZarrDataset
+  zarr_path: data/robocasa/baking2_N${training.num_demo}.zarr
+  obs_keys: []
+  action_key: action
+  n_obs_steps: 0
+  n_action_steps: ${horizon}
+  seed: ${seed}
+  val_ratio: 0.1

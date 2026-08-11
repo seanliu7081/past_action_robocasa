@@ -1,0 +1,105 @@
+# baking2.yaml  (RoboCasa multi-task: baking)
+# ──────────────────────────────────────────────────────────────
+# Plain (no past-action) counterpart of baking2_with_past.yaml -- same
+# shape_meta and multi-task runner, but uses the standard ZarrDataset.
+#
+# Launch (num_demo=204 = 101 + 103 so the zarr path resolves to
+# data/robocasa/baking2_N204.zarr):
+#   accelerate launch scripts/run_workspace.py \
+#     --config-name train_oatpolicy \
+#     task/policy=robocasa/baking2 \
+#     training.num_demo=204 \
+#     policy.action_tokenizer.checkpoint=<path_to_tokenizer_ckpt>
+#
+# Build the dataset first with:
+#   python scripts/compose_robocasa_multitask_dataset.py -mt baking2 --shuffle
+#
+# See baking2_with_past.yaml for the full data-provenance notes: these demos
+# come from the RoboCasa **v1.0** LeRobot release (not v0.2), are human-only,
+# and total 204 episodes (~102/task) rather than 200 per task.
+#
+# `lazy_eval: true` matches the other multi-task suites: validation loss only.
+# Enable rollouts with the CLI override `task.policy.lazy_eval=false`. Rollout
+# eval requires mujoco==3.2.6 -- under 3.3.x the CupcakeCleanup env fails to
+# build ("mesh volume is too small"); see baking2_with_past.yaml.
+
+name: baking2
+
+task_name: baking2
+lazy_eval: true
+
+shape_meta: &shape_meta
+  obs:
+    robot0_agentview_left_image:
+      shape: [128, 128, 3]
+      type: rgb
+    robot0_agentview_right_image:
+      shape: [128, 128, 3]
+      type: rgb
+    robot0_eye_in_hand_image:
+      shape: [128, 128, 3]
+      type: rgb
+    robot0_eef_pos:
+      shape: [3]
+      type: state
+    robot0_eef_quat:
+      shape: [4]
+      type: state
+    robot0_gripper_qpos:
+      shape: [2]
+      type: state
+    robot0_base_pos:
+      shape: [3]
+      type: state
+    robot0_base_quat:
+      shape: [4]
+      type: state
+    task_uid:
+      shape: [1]
+      type: state
+  action:
+    shape: [12]
+
+
+env_runner:
+  _target_: oat.env_runner.robocasa_multitask_runner.RoboCasaMultiTaskRunner
+  task_name: baking2
+  robots: PandaOmron
+  n_test: 100
+  n_test_vis: 4
+  n_obs_steps: ${n_obs_steps}
+  n_action_steps: ${n_action_steps}
+  fps: 20
+  n_parallel_envs: 10
+  image_size: 128
+  camera_names:
+    - robot0_agentview_left
+    - robot0_agentview_right
+    - robot0_eye_in_hand
+  state_ports:
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_base_pos
+    - robot0_base_quat
+  max_episode_steps: 1050
+
+
+dataset:
+  _target_: oat.dataset.zarr_dataset.ZarrDataset
+  zarr_path: data/robocasa/baking2_N${training.num_demo}.zarr
+  obs_keys:
+    - robot0_agentview_left_image
+    - robot0_agentview_right_image
+    - robot0_eye_in_hand_image
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_base_pos
+    - robot0_base_quat
+    - task_uid
+  action_key: action
+  n_obs_steps: ${n_obs_steps}
+  n_action_steps: ${horizon}
+  seed: ${seed}
+  val_ratio: 0.1
