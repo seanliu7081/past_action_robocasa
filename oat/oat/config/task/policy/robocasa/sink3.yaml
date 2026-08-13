@@ -1,0 +1,108 @@
+# sink3.yaml  (RoboCasa multi-task: sink manipulation)
+# ──────────────────────────────────────────────────────────────
+# Multi-task variant over the 3 sink tasks (TurnOnSinkFaucet,
+# TurnOffSinkFaucet, TurnSinkSpout). Plain (no past-action) counterpart of
+# sink3_with_past.yaml — same shape_meta and multi-task runner, but uses the
+# standard ZarrDataset. Trains one OATPolicy across all 3 tasks, conditioning
+# on `task_uid` (a type:state observation), and evaluates every task via the
+# multi-task runner.
+#
+# Launch (note num_demo=600 = 3 tasks x 200 demos so the zarr path resolves to
+# data/robocasa/sink3_N600.zarr):
+#   python -m oat.workspace.train_policy \
+#     --config-name train_oatpolicy \
+#     task/policy=robocasa/sink3 \
+#     training.num_demo=600 \
+#     policy.action_tokenizer.checkpoint=<path_to_tokenizer_ckpt>
+#
+# Build the dataset first with:
+#   python scripts/compose_robocasa_multitask_dataset.py -mt sink3 --shuffle
+#
+# `lazy_eval: true` matches the other multi-task suites: validation loss only.
+# Enable rollouts with the CLI override `task.policy.lazy_eval=false` (it only
+# works as a CLI override — see robocasa_implementation.md section 6). Note that
+# `checkpoint.topk.monitor_key` is `mean_success_rate`, which only the env runner
+# logs, so a `lazy_eval: true` run writes `latest.ckpt` and no topk checkpoints.
+
+name: sink3
+
+task_name: sink3
+lazy_eval: true
+
+shape_meta: &shape_meta
+  obs:
+    robot0_agentview_left_image:
+      shape: [128, 128, 3]
+      type: rgb
+    robot0_agentview_right_image:
+      shape: [128, 128, 3]
+      type: rgb
+    robot0_eye_in_hand_image:
+      shape: [128, 128, 3]
+      type: rgb
+    robot0_eef_pos:
+      shape: [3]
+      type: state
+    robot0_eef_quat:
+      shape: [4]
+      type: state
+    robot0_gripper_qpos:
+      shape: [2]
+      type: state
+    robot0_base_pos:
+      shape: [3]
+      type: state
+    robot0_base_quat:
+      shape: [4]
+      type: state
+    task_uid:
+      shape: [1]
+      type: state
+  action:
+    shape: [12]
+
+
+env_runner:
+  _target_: oat.env_runner.robocasa_multitask_runner.RoboCasaMultiTaskRunner
+  task_name: sink3
+  robots: PandaOmron
+  n_test: 150
+  n_test_vis: 9
+  n_obs_steps: ${n_obs_steps}
+  n_action_steps: ${n_action_steps}
+  fps: 20
+  # Kept a multiple of the 3 subtasks so each task keeps its env slot across
+  # chunks, and well under the EGL framebuffer ceiling on a 2x4090 box.
+  n_parallel_envs: 15
+  image_size: 128
+  camera_names:
+    - robot0_agentview_left
+    - robot0_agentview_right
+    - robot0_eye_in_hand
+  state_ports:
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_base_pos
+    - robot0_base_quat
+  max_episode_steps: 500
+
+
+dataset:
+  _target_: oat.dataset.zarr_dataset.ZarrDataset
+  zarr_path: data/robocasa/sink3_N${training.num_demo}.zarr
+  obs_keys:
+    - robot0_agentview_left_image
+    - robot0_agentview_right_image
+    - robot0_eye_in_hand_image
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_base_pos
+    - robot0_base_quat
+    - task_uid
+  action_key: action
+  n_obs_steps: ${n_obs_steps}
+  n_action_steps: ${horizon}
+  seed: ${seed}
+  val_ratio: 0.1
