@@ -1,0 +1,112 @@
+# doors4_with_prev_window.yaml  (RoboCasa multi-task: door manipulation)
+# ──────────────────────────────────────────────────────────────
+# Identical to doors4_with_past.yaml except for the dataset class: this one
+# also emits the PREVIOUS rollout window (prev_obs, prev_past_action), which
+# OATPolicyWithSelfPast needs to regenerate its own past_action during
+# training. Everything else — shape_meta, env_runner, obs_keys — is unchanged,
+# so a policy trained with either task group sees the same observations.
+#
+# Launch (num_demo=800 = 4 tasks x 200 demos so the zarr path resolves to
+# data/robocasa/doors4_N800.zarr):
+#   python -m oat.workspace.train_policy \
+#     --config-name train_oatpolicy_with_self_past_robocasa \
+#     task/policy=robocasa/doors4_with_prev_window \
+#     training.num_demo=800 \
+#     policy.action_tokenizer.checkpoint=<path_to_tokenizer_ckpt>
+#
+# NOTE: the door tasks have per-task horizons of 500-1000 (OpenDoubleDoor=1000,
+# CloseDoubleDoor=700, both single doors=500). The multi-task runner uses one
+# `max_episode_steps` for all subtasks, so it is set to 1000 here to give the
+# longest task enough steps; shorter tasks simply terminate early on success.
+
+name: doors4
+
+task_name: doors4
+lazy_eval: true
+
+shape_meta: &shape_meta
+  obs:
+    robot0_agentview_left_image:
+      shape: [128, 128, 3]
+      type: rgb
+    robot0_agentview_right_image:
+      shape: [128, 128, 3]
+      type: rgb
+    robot0_eye_in_hand_image:
+      shape: [128, 128, 3]
+      type: rgb
+    robot0_eef_pos:
+      shape: [3]
+      type: state
+    robot0_eef_quat:
+      shape: [4]
+      type: state
+    robot0_gripper_qpos:
+      shape: [2]
+      type: state
+    robot0_base_pos:
+      shape: [3]
+      type: state
+    robot0_base_quat:
+      shape: [4]
+      type: state
+    task_uid:
+      shape: [1]
+      type: state
+  action:
+    shape: [12]
+
+
+env_runner:
+  _target_: oat.env_runner.robocasa_multitask_runner.RoboCasaMultiTaskRunner
+  task_name: doors4
+  robots: PandaOmron
+  n_test: 200
+  n_test_vis: 9
+  n_obs_steps: ${n_obs_steps}
+  n_action_steps: ${n_action_steps}
+  fps: 20
+  # Kept at 20 to match doors4_with_past.yaml. Harmless while lazy_eval=true
+  # (no envs are built); if you enable rollouts, 20 has been seen to fail with
+  # "Offscreen framebuffer is not complete" on a 2x RTX 4090 box — override
+  # with n_parallel_envs=16 (a multiple of 4, so each door task keeps its env
+  # slot across chunks).
+  n_parallel_envs: 20
+  image_size: 128
+  camera_names:
+    - robot0_agentview_left
+    - robot0_agentview_right
+    - robot0_eye_in_hand
+  state_ports:
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_base_pos
+    - robot0_base_quat
+  max_episode_steps: 1000
+
+
+dataset:
+  # Same obs / action / past_action as doors4_with_past.yaml, plus the
+  # PREVIOUS rollout window (prev_obs, prev_past_action).
+  _target_: oat.dataset.zarr_dataset_with_prev_window.ZarrDatasetWithPrevWindow
+  zarr_path: data/robocasa/doors4_N${training.num_demo}.zarr
+  obs_keys:
+    - robot0_agentview_left_image
+    - robot0_agentview_right_image
+    - robot0_eye_in_hand_image
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_base_pos
+    - robot0_base_quat
+    - task_uid
+  action_key: action
+  n_obs_steps: ${n_obs_steps}
+  n_action_steps: ${horizon}
+  seed: ${seed}
+  val_ratio: 0.1
+  past_n: ${past_n}
+  # Actions actually executed per chunk at rollout, i.e. the policy's
+  # n_action_steps (8) — NOT the chunk length above (horizon, 16).
+  n_exec_steps: ${n_action_steps}
